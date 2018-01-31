@@ -17,48 +17,47 @@ my $token = $cfg->param('token') || die "No token defined in config!";
 my $user = $cfg->param('user') || die "No user defined in config!";
 my $debug = $cfg->param('debug') // 0;
 
-my $ua = LWP::UserAgent->new( agent => 'cmd2telegram ', ssl_opts => { verify_hostname => 1 } );
-$ua->env_proxy;
-
-my $cmd = shift(@ARGV) // '';
-
-if ($cmd eq 'status') {
-	my $response = $ua->get('https://api.telegram.org/bot'.$token.'/getMe');
+sub telegram_request($) {
+	my $method = shift;
+	my $ua = LWP::UserAgent->new( agent => 'cmd2telegram ', ssl_opts => { verify_hostname => 1 } );
+	$ua->env_proxy;
+	my $response = $ua->get('https://api.telegram.org/bot'.$token.'/'.$method);
 	if ($response->is_success) {
 		print "response: ".$response->decoded_content."\n" if ($debug);
 		my $json = decode_json($response->decoded_content);
 		print Dumper($json)."\n" if ($debug);
 		if (defined($json) && $json->{ok})
 		{
-			my $res = $json->{result};
-			print "ok, bot id: ".$res->{id}.", name: ".$res->{first_name}."\n";
+			return $json->{result};
 		} else {
 			print "not ok: ".$response->decoded_content."\n";
 		}
 	} else {
 	       	print "error: ".$response->status_line."\n";
 	}
+	return undef;
+}
+
+my $cmd = shift(@ARGV) // '';
+
+if ($cmd eq 'status') {
+	my $res =telegram_request('getMe');
+	if (defined($res))
+	{
+		print "ok, bot id: ".$res->{id}.", name: ".$res->{first_name}."\n";
+	}
+
 } elsif ($cmd eq 'update') {
-	my $response = $ua->get('https://api.telegram.org/bot'.$token.'/getUpdates');
-	if ($response->is_success) {
-		print "response: ".$response->decoded_content."\n" if ($debug);
-		my $json = decode_json($response->decoded_content);
-		print Dumper($json)."\n" if ($debug);
-		if (defined($json) && $json->{ok})
+	my $result =telegram_request('getUpdates');
+	if (defined($result)) {
+		foreach my $res (@{$result})
 		{
-			foreach my $res (@{$json->{result}})
-			{
-				my $msg = $res->{message};
-				if ($msg) {
-					my $time = strftime("%Y-%m-%d %H:%M:%S ", localtime($msg->{date}));
-					print $time.$msg->{from}->{username}.": ".$msg->{text}."\n";
-				}
+			my $msg = $res->{message};
+			if ($msg) {
+				my $time = strftime("%Y-%m-%d %H:%M:%S ", localtime($msg->{date}));
+				print $time.$msg->{from}->{username}.": ".$msg->{text}."\n";
 			}
-		} else {
-			print "not ok: ".$response->decoded_content."\n";
 		}
-	} else {
-	       	print "error: ".$response->status_line."\n";
 	}
 
 } elsif ($cmd eq 'send') {
