@@ -56,13 +56,16 @@ sub telegram_request($) {
 	return undef;
 }
 
-sub print_message($) {
+sub print_message($$) {
 	# TODO: maybe use an extra parameter to specify what details to print?
 	# TODO: for non-text messages, decode/download/show details?
 	my $msg = shift;
-	next unless defined($msg->{date});
-	next unless defined($msg->{chat});
-	my $text = strftime("%Y-%m-%d %H:%M:%S ", localtime($msg->{date}));
+	my $id = shift;
+	return unless defined($msg->{date});
+	return unless defined($msg->{chat});
+	my $text;
+	$text .= $id.' ';
+	$text .= strftime("%Y-%m-%d %H:%M:%S ", localtime($msg->{date}));
 	$text .= $msg->{chat}->{username} if defined($msg->{chat}->{username});
 	$text .= '('.$msg->{chat}->{id}.')' if defined($msg->{chat}->{id});
 	$text .= ' [sticker]' if defined($msg->{sticker});
@@ -84,19 +87,22 @@ if ($cmd eq 'status') {
 	}
 
 } elsif ($cmd eq 'update') {
-	my $result =telegram_request('getUpdates');
+	my $start = shift(@ARGV);
+	$start //= 0;
+	my $result = telegram_request('getUpdates');
 	if (defined($result)) {
 		foreach my $res (@{$result})
 		{
 			my $msg = $res->{message};
-			print_message($msg) if ($msg);
+			my $id = $res->{update_id};
+			next unless (defined($id) && ($id > $start));
+			print_message($msg, $id) if defined($msg);
 		}
 	}
 
 } elsif ($cmd eq 'send') {
 	my $chat = shift(@ARGV);
        	$chat //= $user;
-	# chat id can be a numeric user id or '@username'
 	my $uri = URI::Encode->new({encode_reserved => 1});
 	my @lines=<>;
 	chomp(@lines);
