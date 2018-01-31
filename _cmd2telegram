@@ -1,7 +1,7 @@
-# configuration template, fill in and save as ~/.cmd2telegram
-#Bot token
+# configuration template, fill in and save as .cmd2telegram
+# Bot token, get from telegram botfather
 token: xxxxxxxxx:yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
-#user id (write to bot and look into irssi console)
+# User/chat id (write to bot and use 'cmd2telegram update' to find out)
 user: 12345
-#debugging
+# debugging
 debug: 0

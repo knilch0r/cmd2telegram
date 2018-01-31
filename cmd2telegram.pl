@@ -1,5 +1,19 @@
 #!/usr/bin/perl
-# telegram commandline tool.
+# cmd2telegram.pl - telegram commandline tool.
+# Copyright (C) 2018 Tobias 'knilch' Jordan
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; ONLY version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 use strict;
 use warnings;
@@ -52,9 +66,9 @@ sub print_message($) {
 	$text .= $msg->{chat}->{username} if defined($msg->{chat}->{username});
 	$text .= '('.$msg->{chat}->{id}.')' if defined($msg->{chat}->{id});
 	$text .= ' [sticker]' if defined($msg->{sticker});
-	$text .= ' [audio]' if defined($msg->{audio});
+	$text .= ' [audio]' if (defined($msg->{audio}) || defined($msg->{voice}));
 	$text .= ' [photo]' if defined($msg->{photo});
-	$text .= ' [video]' if defined($msg->{video});
+	$text .= ' [video]' if (defined($msg->{video}) || defined($msg->{video_note}));
 	$text .= ': ' if defined($msg->{text});
 	$text .= ($msg->{text} // ' [no text]')."\n";
 	print $text;
