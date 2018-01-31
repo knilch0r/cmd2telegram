@@ -54,8 +54,10 @@ if ($cmd eq 'status') {
 		{
 			my $msg = $res->{message};
 			if ($msg) {
+				# TODO: maybe use an extra parameter to specify what details to print?
 				my $time = strftime("%Y-%m-%d %H:%M:%S ", localtime($msg->{date}));
-				print $time.$msg->{from}->{username}.": ".$msg->{text}."\n";
+				my $user = $msg->{from}->{username}.'('.$msg->{from}->{id}.')'; 
+				print $time.$user.": ".$msg->{text}."\n";
 			}
 		}
 	}
