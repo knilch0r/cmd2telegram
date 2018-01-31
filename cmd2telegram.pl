@@ -8,6 +8,7 @@ use LWP::UserAgent;
 use JSON;
 use Config::Simple;
 use Data::Dumper;
+use POSIX qw(strftime);
 
 my $cfgfile='.cmd2telegram';
 
@@ -38,6 +39,27 @@ if ($cmd eq 'status') {
 	       	print "error: ".$response->status_line."\n";
 	}
 } elsif ($cmd eq 'update') {
+	my $response = $ua->get('https://api.telegram.org/bot'.$token.'/getUpdates');
+	if ($response->is_success) {
+		print "response: ".$response->decoded_content."\n" if ($debug);
+		my $json = decode_json($response->decoded_content);
+		print Dumper($json)."\n" if ($debug);
+		if (defined($json) && $json->{ok})
+		{
+			foreach my $res (@{$json->{result}})
+			{
+				my $msg = $res->{message};
+				if ($msg) {
+					my $time = strftime("%Y-%m-%d %H:%M:%S ", localtime($msg->{date}));
+					print $time.$msg->{from}->{username}.": ".$msg->{text}."\n";
+				}
+			}
+		} else {
+			print "not ok: ".$response->decoded_content."\n";
+		}
+	} else {
+	       	print "error: ".$response->status_line."\n";
+	}
 
 } elsif ($cmd eq 'send') {
 
