@@ -1,0 +1,7 @@
+# configuration template, fill in and save as ~/.cmd2telegram
+#Bot token
+token: xxxxxxxxx:yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
+#user id (write to bot and look into irssi console)
+user: 12345
+#debugging
+debug: 0
