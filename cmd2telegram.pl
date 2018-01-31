@@ -84,13 +84,13 @@ if ($cmd eq 'status') {
        	$chat //= $user;
 	# chat id can be a numeric user id or '@username'
 	my $uri = URI::Encode->new({encode_reserved => 1});
-	while (<>) {
-		chomp;
-		my $encoded = $uri->encode($_);
-		my $request = 'chat_id='.$chat.'&text='.$encoded;
-		print "requesting: $request\n" if ($debug);
-		telegram_request("sendMessage?$request");
-	}
+	my @lines=<>;
+	chomp(@lines);
+	my $encoded = $uri->encode(join("\n", @lines));
+	die("text too long, won't send") if (length($encoded) > 1024); # arbitrary value is arbitrary
+	my $request = 'chat_id='.$chat.'&text='.$encoded;
+	print "requesting: $request\n" if ($debug);
+	telegram_request("sendMessage?$request");
 
 } else {
 	print "unsupported command: '$cmd'\n\n" if ($cmd);
