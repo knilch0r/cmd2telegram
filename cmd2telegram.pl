@@ -17,6 +17,9 @@ my $token = $cfg->param('token') || die "No token defined in config!";
 my $user = $cfg->param('user') || die "No user defined in config!";
 my $debug = $cfg->param('debug') // 0;
 
+binmode STDIN, ":utf8";
+binmode STDOUT, ":utf8";
+
 sub telegram_request($) {
 	my $method = shift;
 	my $ua = LWP::UserAgent->new( agent => 'cmd2telegram ', ssl_opts => { verify_hostname => 1 } );
@@ -38,6 +41,24 @@ sub telegram_request($) {
 	return undef;
 }
 
+sub print_message($) {
+	# TODO: maybe use an extra parameter to specify what details to print?
+	# TODO: for non-text messages, decode/download/show details?
+	my $msg = shift;
+	next unless defined($msg->{date});
+	next unless defined($msg->{from});
+	my $text = strftime("%Y-%m-%d %H:%M:%S ", localtime($msg->{date}));
+	$text .= $msg->{from}->{username} if defined($msg->{from}->{username});
+	$text .= '('.$msg->{from}->{id}.')' if defined($msg->{from}->{id});
+	$text .= ' [sticker]' if defined($msg->{sticker});
+	$text .= ' [audio]' if defined($msg->{audio});
+	$text .= ' [photo]' if defined($msg->{photo});
+	$text .= ' [video]' if defined($msg->{video});
+	$text .= ': ' if defined($msg->{text});
+	$text .= ($msg->{text} // ' [no text]')."\n";
+	print $text;
+}
+
 my $cmd = shift(@ARGV) // '';
 
 if ($cmd eq 'status') {
@@ -53,16 +74,12 @@ if ($cmd eq 'status') {
 		foreach my $res (@{$result})
 		{
 			my $msg = $res->{message};
-			if ($msg) {
-				# TODO: maybe use an extra parameter to specify what details to print?
-				my $time = strftime("%Y-%m-%d %H:%M:%S ", localtime($msg->{date}));
-				my $user = $msg->{from}->{username}.'('.$msg->{from}->{id}.')'; 
-				print $time.$user.": ".$msg->{text}."\n";
-			}
+			print_message($msg) if ($msg);
 		}
 	}
 
 } elsif ($cmd eq 'send') {
+
 
 } else {
 	print "unsupported command: '$cmd'\n\n" if ($cmd);
@@ -70,7 +87,10 @@ if ($cmd eq 'status') {
 	print "commands:\n";
 	print "\tstatus\tchecks bot registration (getMe request)\n";
 	print "\tupdate\tgets recent updates (getUpdates request)\n";
-	print "\t      \t- shows messages sent to bot in telegram\n";
+	print "\t      \tshows messages received by bot in telegram\n";
 	print "\tsend  \tsends a text message (sendMessage request)\n";
-	print "\t      \tparameter(s): message to send\n";
+	print "\t      \tparameter(s): user id to send to (default: config)\n";
+	print "\t      \tmessage is read from stdin\n";
 }
+
+
