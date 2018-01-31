@@ -8,6 +8,7 @@ use LWP::UserAgent;
 use JSON;
 use Config::Simple;
 use Data::Dumper;
+use URI::Encode;
 use POSIX qw(strftime);
 
 my $cfgfile='.cmd2telegram';
@@ -46,10 +47,10 @@ sub print_message($) {
 	# TODO: for non-text messages, decode/download/show details?
 	my $msg = shift;
 	next unless defined($msg->{date});
-	next unless defined($msg->{from});
+	next unless defined($msg->{chat});
 	my $text = strftime("%Y-%m-%d %H:%M:%S ", localtime($msg->{date}));
-	$text .= $msg->{from}->{username} if defined($msg->{from}->{username});
-	$text .= '('.$msg->{from}->{id}.')' if defined($msg->{from}->{id});
+	$text .= $msg->{chat}->{username} if defined($msg->{chat}->{username});
+	$text .= '('.$msg->{chat}->{id}.')' if defined($msg->{chat}->{id});
 	$text .= ' [sticker]' if defined($msg->{sticker});
 	$text .= ' [audio]' if defined($msg->{audio});
 	$text .= ' [photo]' if defined($msg->{photo});
@@ -79,7 +80,17 @@ if ($cmd eq 'status') {
 	}
 
 } elsif ($cmd eq 'send') {
-
+	my $chat = shift(@ARGV);
+       	$chat //= $user;
+	# chat id can be a numeric user id or '@username'
+	my $uri = URI::Encode->new({encode_reserved => 1});
+	while (<>) {
+		chomp;
+		my $encoded = $uri->encode($_);
+		my $request = 'chat_id='.$chat.'&text='.$encoded;
+		print "requesting: $request\n" if ($debug);
+		telegram_request("sendMessage?$request");
+	}
 
 } else {
 	print "unsupported command: '$cmd'\n\n" if ($cmd);
@@ -89,7 +100,7 @@ if ($cmd eq 'status') {
 	print "\tupdate\tgets recent updates (getUpdates request)\n";
 	print "\t      \tshows messages received by bot in telegram\n";
 	print "\tsend  \tsends a text message (sendMessage request)\n";
-	print "\t      \tparameter(s): user id to send to (default: config)\n";
+	print "\t      \tparameter(s): chat id to send to (default: config)\n";
 	print "\t      \tmessage is read from stdin\n";
 }
 
