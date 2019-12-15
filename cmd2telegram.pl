@@ -25,9 +25,13 @@ use Data::Dumper;
 use URI::Encode;
 use POSIX qw(strftime);
 
-my $cfgfile='.cmd2telegram';
+my $cfgfile = '.cmd2telegram';
+if ($ARGV[0] eq '-c') {
+	shift(@ARGV);
+	$cfgfile = shift(@ARGV) // '';
+}
 
-my $cfg = new Config::Simple($cfgfile) || die "Can't open ${cfgfile}: $!";
+my $cfg = new Config::Simple($cfgfile) || die "Can't open config '${cfgfile}': $!";
 my $token = $cfg->param('token') || die "No token defined in config!";
 my $user = $cfg->param('user') || die "No user defined in config!";
 my $debug = $cfg->param('debug') // 0;
@@ -114,7 +118,9 @@ if ($cmd eq 'status') {
 
 } else {
 	print "unsupported command: '$cmd'\n\n" if ($cmd);
-	print "usage: $0 command [parameters]\n\n";
+	print "usage: $0 [-c cfg] command [parameters]\n\n";
+	print "options:\n";
+	print "\t-c cfg\tuse configuration file 'cfg' instead of .cmd2telegram\n\n";
 	print "commands:\n";
 	print "\tstatus\tchecks bot registration (getMe request)\n";
 	print "\tupdate\tgets recent updates (getUpdates request)\n";
