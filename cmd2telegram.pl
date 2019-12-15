@@ -92,14 +92,14 @@ if ($cmd eq 'status') {
 
 } elsif ($cmd eq 'update') {
 	my $start = shift(@ARGV);
-	$start //= 0;
-	my $result = telegram_request('getUpdates');
+	$start //= '';
+	my $result = telegram_request('getUpdates?offset='.$start);
 	if (defined($result)) {
 		foreach my $res (@{$result})
 		{
 			my $msg = $res->{message};
 			my $id = $res->{update_id};
-			next unless (defined($id) && ($id > $start));
+			next unless defined($id);
 			print_message($msg, $id) if defined($msg);
 		}
 	}
