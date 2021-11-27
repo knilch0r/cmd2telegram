@@ -26,7 +26,7 @@ use URI::Encode;
 use POSIX qw(strftime);
 
 my $cfgfile = '.cmd2telegram';
-if ($ARGV[0] eq '-c') {
+if (($ARGV[0] // '') eq '-c') {
 	shift(@ARGV);
 	$cfgfile = shift(@ARGV) // '';
 }
@@ -39,11 +39,8 @@ my $debug = $cfg->param('debug') // 0;
 binmode STDIN, ":utf8";
 binmode STDOUT, ":utf8";
 
-sub telegram_request($) {
-	my $method = shift;
-	my $ua = LWP::UserAgent->new( agent => 'cmd2telegram ', ssl_opts => { verify_hostname => 1 } );
-	$ua->env_proxy;
-	my $response = $ua->get('https://api.telegram.org/bot'.$token.'/'.$method);
+sub handleresponse($) {
+	my $response = shift;
 	if ($response->is_success) {
 		print "response: ".$response->decoded_content."\n" if ($debug);
 		my $json = decode_json($response->decoded_content);
@@ -55,9 +52,31 @@ sub telegram_request($) {
 			print "not ok: ".$response->decoded_content."\n";
 		}
 	} else {
-	       	print "error: ".$response->status_line."\n";
+		print "error: ".$response->status_line."\n";
 	}
 	return undef;
+}
+
+sub telegram_request($) {
+	my $method = shift;
+	my $ua = LWP::UserAgent->new( agent => 'cmd2telegram ', ssl_opts => { verify_hostname => 1 } );
+	$ua->env_proxy;
+	my $response = $ua->get('https://api.telegram.org/bot'.$token.'/'.$method);
+	return handleresponse($response);
+}
+
+sub telegram_sendfile($$$$) {
+	my ($filename, $method, $caption, $chatid) = @_;
+	my $ua = LWP::UserAgent->new( agent => 'cmd2telegram ', ssl_opts => { verify_hostname => 1 } );
+	$ua->env_proxy;
+	my $response = $ua->post('https://api.telegram.org/bot'.$token.'/send'.ucfirst($method),
+	                         Content_Type    => 'form-data',
+	                         Content         => [ chat_id => $chatid,
+	                                              caption => $caption,
+	                                              $method => [ $filename ]
+	                                            ]
+	                        );
+	return handleresponse($response);
 }
 
 sub print_message($$) {
@@ -91,8 +110,7 @@ if ($cmd eq 'status') {
 	}
 
 } elsif ($cmd eq 'update') {
-	my $start = shift(@ARGV);
-	$start //= '';
+	my $start = shift(@ARGV) // '';
 	my $result = telegram_request('getUpdates?offset='.$start);
 	if (defined($result)) {
 		foreach my $res (@{$result})
@@ -105,8 +123,7 @@ if ($cmd eq 'status') {
 	}
 
 } elsif ($cmd eq 'send') {
-	my $chat = shift(@ARGV);
-       	$chat //= $user;
+	my $chat = shift(@ARGV) // $user;
 	my $uri = URI::Encode->new({encode_reserved => 1});
 	my @lines=<>;
 	chomp(@lines);
@@ -116,18 +133,34 @@ if ($cmd eq 'status') {
 	print "requesting: $request\n" if ($debug);
 	telegram_request("sendMessage?$request");
 
+} elsif ($cmd eq 'sendfile') {
+	my $file = shift(@ARGV);
+	die("usage: $0 sendfile filename [method] [caption] [chat]") unless ($file);
+	die("file '$file' not a readable file") unless ((-r $file) && (-f $file));
+	my $method = shift(@ARGV) // 'photo';
+	my $caption = shift(@ARGV) // '';
+	my $chat = shift(@ARGV) // $user;
+	print "sending '$file' using method '$method' to chat '$chat'\ncaption '$caption'\n" if ($debug);
+	telegram_sendfile($file, $method, $caption, $chat);
+
 } else {
 	print "unsupported command: '$cmd'\n\n" if ($cmd);
 	print "usage: $0 [-c cfg] command [parameters]\n\n";
 	print "options:\n";
 	print "\t-c cfg\tuse configuration file 'cfg' instead of .cmd2telegram\n\n";
 	print "commands:\n";
-	print "\tstatus\tchecks bot registration (getMe request)\n";
-	print "\tupdate\tgets recent updates (getUpdates request)\n";
-	print "\t      \tshows messages received by bot in telegram\n";
-	print "\tsend  \tsends a text message (sendMessage request)\n";
-	print "\t      \tparameter(s): chat id to send to (default: config)\n";
-	print "\t      \tmessage is read from stdin\n";
+	print "\tstatus  \tchecks bot registration (getMe request)\n";
+	print "\tupdate  \tgets recent updates (getUpdates request)\n";
+	print "\t        \tshows messages received by bot in telegram\n";
+	print "\tsend    \tsends a text message (sendMessage request)\n";
+	print "\t        \tparameter: chat\n";
+	print "\t        \t\tchat    \tchat id to send to (default: config)\n";
+	print "\t        \tmessage is read from stdin\n";
+	print "\tsendfile\tsends a file (sendPhoto/sendAudio/... request)\n";
+	print "\t        \tparameter(s): filename method caption chat\n";
+	print "\t        \t\tfilename\tfile to send (mandatory)\n";
+	print "\t        \t\tmethod  \tkind of file (default: 'photo')\n";
+	print "\t        \t\tcaption \tcaption to use (default: empty)\n";
+	print "\t        \t\tchat    \tchat id to send to (default: config)\n";
 }
-
 
