@@ -8,6 +8,13 @@
 4. Start a conversation with your bot in telegram, send it some text
 5. Run `./cmd2telegram.pl update` - you should see your conversation and your numerical user id, add the id in `.cmd2telegram`
 
+### Prerequisites
+
+On a debian system, the following might come handy:
+```
+apt install libjson-perl libconfig-simple-perl liburi-encode-perl
+```
+
 ## Usage
 
 - Run `./cmd2telegram.pl update` to get things sent to your bot
