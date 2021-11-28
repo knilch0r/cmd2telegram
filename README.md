@@ -12,7 +12,7 @@
 
 On a debian system, the following might come handy:
 ```
-apt install libjson-perl libconfig-simple-perl liburi-encode-perl
+apt install liblwp-protocol-https-perl libjson-perl libconfig-simple-perl liburi-encode-perl
 ```
 
 ## Usage
