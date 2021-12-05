@@ -111,7 +111,9 @@ if ($cmd eq 'status') {
 
 } elsif ($cmd eq 'update') {
 	my $start = shift(@ARGV) // '';
-	my $result = telegram_request('getUpdates?offset='.$start);
+	my $timeout = shift(@ARGV) // '';
+	$timeout = '&timeout='.$timeout if ($timeout);
+	my $result = telegram_request('getUpdates?offset='.$start.$timeout);
 	if (defined($result)) {
 		foreach my $res (@{$result})
 		{
@@ -152,6 +154,9 @@ if ($cmd eq 'status') {
 	print "\tstatus  \tchecks bot registration (getMe request)\n";
 	print "\tupdate  \tgets recent updates (getUpdates request)\n";
 	print "\t        \tshows messages received by bot in telegram\n";
+	print "\t        \tparameter(s): offset timeout\n";
+	print "\t        \t\toffset  \tmessage offset (default empty)\n";
+	print "\t        \t\ttimeout \ttimeout for longpoll (default empty)\n";
 	print "\tsend    \tsends a text message (sendMessage request)\n";
 	print "\t        \tparameter: chat\n";
 	print "\t        \t\tchat    \tchat id to send to (default: config)\n";
